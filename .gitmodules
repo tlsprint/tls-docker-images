@@ -1,3 +1,6 @@
 [submodule "mbedtls"]
 	path = mbedtls
 	url = git@github.com:tlsprint/docker-mbedtls.git
+[submodule "botan"]
+	path = botan
+	url = git@github.com:tlsprint/docker-botan.git
