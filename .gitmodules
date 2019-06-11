@@ -4,3 +4,6 @@
 [submodule "botan"]
 	path = botan
 	url = git@github.com:tlsprint/docker-botan.git
+[submodule "openssl"]
+	path = openssl
+	url = git@github.com:tlsprint/docker-openssl.git
