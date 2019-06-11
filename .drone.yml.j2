@@ -1,0 +1,17 @@
+{% for version in versions -%}
+---
+kind: pipeline
+name: {{ version }}
+
+steps:
+    # Build the implementation and set the appropriate tag
+  - name: build
+    image: plugins/docker
+    settings:
+      repo: tlsprint/{{ implementation }}
+      tags: {{ version }}
+      dockerfile: dockerfiles/{{ version }}/Dockerfile
+      dry_run: true  # Do not push at the end of this step
+      purge: false
+
+{% endfor %}
