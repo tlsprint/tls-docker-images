@@ -33,24 +33,24 @@ for (implementation, url) in implementations:
     # extract the actual version numbers from the tags.
     module = import_module(implementation)
     version_info = module.extract_versions(tags)
+    version_info = sorted(version_info, key=lambda info: LooseVersion(info["version"]))
 
     # Read the Dockerfile template
     with open(path / "Dockerfile.j2") as f:
         template = Template(f.read())
 
-    for tag, version in version_info:
+    for info in version_info:
         # Create the folder for this tag
-        tag_dir = path / "dockerfiles" / version
+        tag_dir = path / "dockerfiles" / info["version"]
         tag_dir.mkdir(parents=True, exist_ok=True)
 
         # Write the created Dockerfile to the folder
         with open(tag_dir / "Dockerfile", "w") as f:
-            f.write(template.render(implementation=implementation, url=url, tag=tag, version=version))
+            f.write(template.render(implementation=implementation, url=url, tag=info["tag"], version=info["version"]))
 
     # Generate a .drone.yml that builds each Dockerfile
     with open(".drone.yml.j2") as f:
         drone_template = Template(f.read())
 
     with open(path / ".drone.yml", "w") as f:
-        versions = sorted([version for _, version in version_info], key=LooseVersion)
-        f.write(drone_template.render(implementation=implementation, versions=versions))
+        f.write(drone_template.render(implementation=implementation, version_info=version_info))

@@ -1,4 +1,5 @@
-{% for version in versions -%}
+{% for info in version_info -%}
+{% set version = info["version"] -%}
 ---
 kind: pipeline
 name: {{ version }}
@@ -13,5 +14,48 @@ steps:
       dockerfile: dockerfiles/{{ version }}/Dockerfile
       dry_run: true  # Do not push at the end of this step
       purge: false
+
+    # Store the resulting image on the host docker, so it can be used in the
+    # next step.
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+
+    # Start the implementation, the system under test, in the background
+  - name: sut
+    image: tlsprint/{{ implementation }}:{{ version }}
+    detach: true
+
+    {%- for protocol in info["supported_tls"] %}
+
+  - name: verify {{ protocol }}
+    image: tlsprint/tlsattackerconnector
+    commands:
+      - sleep 5
+      - connector
+        --targetHost sut
+        --protocolVersion {{ protocol }}
+        --cipherSuite "TLS_RSA_WITH_3DES_EDE_CBC_SHA,TLS_RSA_WITH_AES_128_CBC_SHA"
+        --test | tee result.log
+      - "grep 'ApplicationData: APPLICATION|ConnectionClosed' result.log"
+    {%- endfor %}
+
+  - name: publish
+    image: plugins/docker
+    settings:
+      repo: tlsprint/{{ implementation }}
+      tags: {{ version }}
+      dockerfile: dockerfiles/{{ version }}/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      purge: false
+
+volumes:
+    # Expose host docker to build steps
+  - name: docker
+    host:
+      path: /var/run/docker.sock
 
 {% endfor %}
