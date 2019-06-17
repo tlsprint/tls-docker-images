@@ -36,6 +36,9 @@ steps:
         --targetHost sut
         --protocolVersion {{ protocol }}
         --cipherSuite "TLS_RSA_WITH_3DES_EDE_CBC_SHA,TLS_RSA_WITH_AES_128_CBC_SHA"
+        {%- if settings["timeout"] %}
+        --timeout {{ settings["timeout"] }}
+        {%- endif %}
         --test | tee result.log
       - "grep 'ApplicationData: APPLICATION|ConnectionClosed' result.log"
     {%- endfor %}

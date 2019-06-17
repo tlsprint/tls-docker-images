@@ -35,6 +35,11 @@ for (implementation, url) in implementations:
     version_info = module.extract_versions(tags)
     version_info = sorted(version_info, key=lambda info: LooseVersion(info["version"]))
 
+    try:
+        settings = module.settings
+    except AttributeError:
+        settings = dict()
+
     # Read the Dockerfile template
     with open(path / "Dockerfile.j2") as f:
         template = Template(f.read())
@@ -53,4 +58,4 @@ for (implementation, url) in implementations:
         drone_template = Template(f.read())
 
     with open(path / ".drone.yml", "w") as f:
-        f.write(drone_template.render(implementation=implementation, version_info=version_info))
+        f.write(drone_template.render(implementation=implementation, version_info=version_info, settings=settings))
