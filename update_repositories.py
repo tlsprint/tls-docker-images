@@ -4,7 +4,15 @@ from importlib import import_module
 from distutils.version import LooseVersion
 
 import pygit2
-from jinja2 import Template
+from jinja2 import Environment
+
+def in_version_range(version, left, right):
+    """Jinja2 filter to see if a version falls without a certain range."""
+    return LooseVersion(left) <= LooseVersion(version) <= LooseVersion(right)
+
+# Configure the Jinja2 environment, including the custom filter
+env = Environment()
+env.filters["in_version_range"] = in_version_range
 
 # Every implementation is stored in a separate directory, looping over them
 # allows updated each of them.
@@ -42,7 +50,7 @@ for (implementation, url) in implementations:
 
     # Read the Dockerfile template
     with open(path / "Dockerfile.j2") as f:
-        template = Template(f.read())
+        template = env.from_string(f.read())
 
     for info in version_info:
         # Create the folder for this tag
@@ -55,7 +63,7 @@ for (implementation, url) in implementations:
 
     # Generate a .drone.yml that builds each Dockerfile
     with open(".drone.yml.j2") as f:
-        drone_template = Template(f.read())
+        drone_template = env.from_string(f.read())
 
     with open(path / ".drone.yml", "w") as f:
         f.write(drone_template.render(implementation=implementation, version_info=version_info, settings=settings))
