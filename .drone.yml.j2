@@ -40,7 +40,7 @@ steps:
         --timeout {{ settings["timeout"] }}
         {%- endif %}
         --test | tee result.log
-      - "grep 'ApplicationData: APPLICATION|ConnectionClosed' result.log"
+      - "grep 'ApplicationData: APPLICATION|ConnectionClosed' result.log || grep 'ApplicationData: APPLICATION|ALERT_WARNING_CLOSE_NOTIFY|ConnectionClosed' result.log"
     {%- endfor %}
 
   - name: publish
