@@ -8,7 +8,12 @@ from jinja2 import Environment
 
 def in_version_range(version, left, right):
     """Jinja2 filter to see if a version falls without a certain range."""
-    return LooseVersion(left) <= LooseVersion(version) <= LooseVersion(right)
+    if left is None:
+        return LooseVersion(version) <= LooseVersion(right)
+    elif right is None:
+        return LooseVersion(left) <= LooseVersion(version)
+    else:
+        return LooseVersion(left) <= LooseVersion(version) <= LooseVersion(right)
 
 # Configure the Jinja2 environment, including the custom filter
 env = Environment()
