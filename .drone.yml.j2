@@ -45,16 +45,21 @@ steps:
     {%- endfor %}
 
   - name: publish
-    image: plugins/docker
-    settings:
-      repo: tlsprint/{{ implementation }}
-      tags: {{ version }}
-      dockerfile: dockerfiles/{{ version }}/Dockerfile
-      username:
+    image: docker
+    commands:
+      - docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+      - docker push tlsprint/{{ implementation }}:{{ version }}
+    environment:
+      DOCKER_USERNAME:
         from_secret: docker_username
-      password:
+      DOCKER_PASSWORD:
         from_secret: docker_password
-      purge: false
+
+    # Give access to host docker, the previously build image is available here.
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+
 
 volumes:
     # Expose host docker to build steps
