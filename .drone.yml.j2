@@ -7,13 +7,11 @@ name: {{ version }}
 steps:
     # Build the implementation and set the appropriate tag
   - name: build
-    image: plugins/docker
-    settings:
-      repo: tlsprint/{{ implementation }}
-      tags: {{ version }}
-      dockerfile: dockerfiles/{{ version }}/Dockerfile
-      dry_run: true  # Do not push at the end of this step
-      purge: false
+    image: docker
+    commands:
+      - docker build .
+        --tag tlsprint/{{ implementation }}:{{ version }}
+        --file dockerfiles/{{ version }}/Dockerfile
 
     # Store the resulting image on the host docker, so it can be used in the
     # next step.
