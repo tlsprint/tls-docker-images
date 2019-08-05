@@ -1,10 +1,10 @@
-import os
 from pathlib import Path
 from importlib import import_module
 from distutils.version import LooseVersion
 
 import pygit2
 from jinja2 import Environment
+
 
 def in_version_range(version, left, right):
     """Jinja2 filter to see if a version falls without a certain range."""
@@ -14,6 +14,7 @@ def in_version_range(version, left, right):
         return LooseVersion(left) <= LooseVersion(version)
     else:
         return LooseVersion(left) <= LooseVersion(version) <= LooseVersion(right)
+
 
 # Configure the Jinja2 environment, including the custom filter
 env = Environment()
@@ -64,11 +65,24 @@ for (implementation, url) in implementations:
 
         # Write the created Dockerfile to the folder
         with open(tag_dir / "Dockerfile", "w") as f:
-            f.write(template.render(implementation=implementation, url=url, tag=info["tag"], version=info["version"]))
+            f.write(
+                template.render(
+                    implementation=implementation,
+                    url=url,
+                    tag=info["tag"],
+                    version=info["version"],
+                )
+            )
 
     # Generate a .drone.yml that builds each Dockerfile
     with open(".drone.yml.j2") as f:
         drone_template = env.from_string(f.read())
 
     with open(path / ".drone.yml", "w") as f:
-        f.write(drone_template.render(implementation=implementation, version_info=version_info, settings=settings))
+        f.write(
+            drone_template.render(
+                implementation=implementation,
+                version_info=version_info,
+                settings=settings,
+            )
+        )
