@@ -1,9 +1,16 @@
-from pathlib import Path
-from importlib import import_module
+import datetime
+import logging
 from distutils.version import LooseVersion
+from importlib import import_module
+from pathlib import Path
 
-import pygit2
+import click
 from jinja2 import Environment
+
+import git
+
+logging.basicConfig(level="INFO")
+logger = logging.getLogger(__name__)
 
 
 def in_version_range(version, left, right):
@@ -16,32 +23,22 @@ def in_version_range(version, left, right):
         return LooseVersion(left) <= LooseVersion(version) <= LooseVersion(right)
 
 
-# Configure the Jinja2 environment, including the custom filter
-env = Environment()
-env.filters["in_version_range"] = in_version_range
+def update_implementation(implementation, url, env, *, commit=False):
+    repo_path = Path(implementation)
+    repo = git.Repo(repo_path)
 
-# Every implementation is stored in a separate directory, looping over them
-# allows updated each of them.
-implementations = [
-    ("botan", "https://github.com/randombit/botan.git"),
-    ("mbedtls", "https://github.com/ARMmbed/mbedtls.git"),
-    ("openssl", "https://github.com/openssl/openssl.git"),
-]
+    logger.info(f"{implementation}: Pull most recent version")
+    repo.git.checkout("master")
+    repo.git.pull("--rebase")
 
-for (implementation, url) in implementations:
-    path = Path(implementation)
-    repo = pygit2.Repository(pygit2.discover_repository(implementation))
-
-    upstream_directory = str(path / "upstream")
-    upstream = pygit2.Repository(pygit2.discover_repository(upstream_directory))
-
-    # TODO: Update the upstream repository and fetch the latest tags
+    logger.info(f"{implementation}: Update upstream submodule")
+    upstream = repo.submodules.upstream.module()
+    upstream.git.checkout("master")
+    upstream.git.pull("--rebase")
 
     # Get a list of all Git tags in the upstream
-    tags = [ref for ref in upstream.references if ref.startswith("refs/tags/")]
-
-    # Remove the 'refs/tags/' prefix from the tag names
-    tags = [tag.replace("refs/tags/", "") for tag in tags]
+    logger.info(f"{implementation}: Get tag information from upstream")
+    tags = [tag.name for tag in upstream.tags]
 
     # Filter the rest of the tags with implementation dependent rules, and
     # extract the actual version numbers from the tags.
@@ -55,12 +52,13 @@ for (implementation, url) in implementations:
         settings = dict()
 
     # Read the Dockerfile template
-    with open(path / "Dockerfile.j2") as f:
+    logger.info(f"{implementation}: Generating dockerfiles")
+    with open(repo_path / "Dockerfile.j2") as f:
         template = env.from_string(f.read())
 
     for info in version_info:
         # Create the folder for this tag
-        tag_dir = path / "dockerfiles" / info["version"]
+        tag_dir = repo_path / "dockerfiles" / info["version"]
         tag_dir.mkdir(parents=True, exist_ok=True)
 
         # Write the created Dockerfile to the folder
@@ -75,10 +73,11 @@ for (implementation, url) in implementations:
             )
 
     # Generate a .drone.yml that builds each Dockerfile
+    logger.info(f"{implementation}: Generating .drone.yml")
     with open(".drone.yml.j2") as f:
         drone_template = env.from_string(f.read())
 
-    with open(path / ".drone.yml", "w") as f:
+    with open(repo_path / ".drone.yml", "w") as f:
         f.write(
             drone_template.render(
                 implementation=implementation,
@@ -86,3 +85,56 @@ for (implementation, url) in implementations:
                 settings=settings,
             )
         )
+
+    logger.info(f"{implementation}: Attempt to commit changes")
+    if commit:
+        try:
+            repo.git.add(".")
+            repo.git.commit(message=f"Automatic update {datetime.date.today()}")
+            repo.git.push()
+            logger.info(f"{implementation}: Committed changes")
+        except git.exc.GitCommandError:
+            logger.info(f"{implementation}: No changes committed")
+
+
+@click.command()
+@click.option(
+    "--commit",
+    default=False,
+    is_flag=True,
+    help="Flag to indicate if changes should be committed",
+)
+def main(commit):
+    # Configure the Jinja2 environment, including the custom filter
+    env = Environment()
+    env.filters["in_version_range"] = in_version_range
+
+    # Every implementation is stored in a separate directory, looping over them
+    # allows updating each of them.
+    implementations = [
+        ("botan", "https://github.com/randombit/botan.git"),
+        ("mbedtls", "https://github.com/ARMmbed/mbedtls.git"),
+        ("openssl", "https://github.com/openssl/openssl.git"),
+    ]
+
+    # Initialize a repository to commit the updated submodules
+    repo = git.Repo(".")
+
+    for (implementation, url) in implementations:
+        update_implementation(implementation, url, env, commit=commit)
+
+        if commit:
+            repo.git.add(implementation)
+
+    # Commit the changed submodules
+    if commit:
+        try:
+            repo.git.commit(message=f"Automatic update {datetime.date.today()}")
+            repo.git.push("origin", "master")
+            logger.info(f"Updated submodule references")
+        except git.exc.GitCommandError:
+            logger.info(f"No submodule references updated")
+
+
+if __name__ == "__main__":
+    main()
