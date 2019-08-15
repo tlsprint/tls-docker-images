@@ -5,7 +5,8 @@ for all implementation specific repositories used to build Docker images. Even
 though the primary goal of these Docker images is to facilitate fingerprint
 extraction for `tlsprint`, they can also be used for a variety of other
 purposes purposes (analyzing specific versions, penetration test lab
-environments, etc.).
+environments, etc.). The resulting Docker images can be found on [Docker
+Hub](https://hub.docker.com/u/tlsprint).
 
 Each supported TLS implementation is stored in its own submodule, but they all
 have an identical directory structure. They all contain:
