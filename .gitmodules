@@ -1,9 +1,9 @@
 [submodule "mbedtls"]
 	path = mbedtls
-	url = https://github.com/tlsprint/docker-mbedtls.git
+	url = git@gitlab.sidnlabs.nl:tlsprint/docker-mbedtls.git
 [submodule "botan"]
 	path = botan
-	url = https://github.com/tlsprint/docker-botan.git
+	url = git@gitlab.sidnlabs.nl:tlsprint/docker-botan.git
 [submodule "openssl"]
 	path = openssl
-	url = https://github.com/tlsprint/docker-openssl.git
+	url = git@gitlab.sidnlabs.nl:tlsprint/docker-openssl.git
