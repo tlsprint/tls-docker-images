@@ -118,7 +118,13 @@ def main(commit):
     ]
 
     # Initialize a repository to commit the updated submodules
-    repo = git.Repo(".")
+    if commit:
+        repo = git.Repo(".")
+        # Since this script is supposed to run autonomously on the master
+        # branch, we make the (potentially dangerous) assumption that we need
+        # to checkout the master branch (since the CI is in detached state).
+        repo.git.checkout("master")
+        repo.git.pull("--rebase")
 
     for (implementation, url) in implementations:
         update_implementation(implementation, url, env, commit=commit)
@@ -130,7 +136,7 @@ def main(commit):
     if commit:
         try:
             repo.git.commit(message=f"Automatic update {datetime.date.today()}")
-            repo.git.push("origin", "master")
+            repo.git.push()
             logger.info(f"Updated submodule references")
         except git.exc.GitCommandError:
             logger.info(f"No submodule references updated")
