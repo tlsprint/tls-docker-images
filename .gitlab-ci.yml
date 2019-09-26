@@ -28,6 +28,10 @@ before_script:
   # Install the dependencies for the update script
   - pip install -r requirements.txt
 
+  # In case a previous job resulted in a stuck rebase, any "rebase-apply"
+  # directories should first be removed.
+  - rm --force $(find .git/modules -name rebase-apply -type d)
+
   # Update submodules. This can't use the GIT_SUBMODULE_STRATEGY variable,
   # because the SSH keys are required to clone the submodules.
   - git submodule sync --recursive
