@@ -27,9 +27,13 @@ def update_implementation(implementation, url, env, *, commit=False):
     repo_path = Path(implementation)
     repo = git.Repo(repo_path)
 
-    logger.info(f"{implementation}: Pull most recent version")
-    repo.git.checkout("master")
-    repo.git.pull("--rebase")
+    # If the `commit` option is not passed, it is probably in development mode.
+    # Pulling at such a moment is not a good idea, as there will be local
+    # changes.
+    if commit:
+        logger.info(f"{implementation}: Pull most recent version")
+        repo.git.checkout("master")
+        repo.git.pull("--rebase")
 
     logger.info(f"{implementation}: Update upstream submodule")
     upstream = repo.submodules.upstream.module()
@@ -86,8 +90,8 @@ def update_implementation(implementation, url, env, *, commit=False):
             )
         )
 
-    logger.info(f"{implementation}: Attempt to commit changes")
     if commit:
+        logger.info(f"{implementation}: Attempt to commit changes")
         try:
             repo.git.add(".")
             repo.git.commit(message=f"Automatic update {datetime.date.today()}")
