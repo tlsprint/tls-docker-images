@@ -37,6 +37,10 @@ before_script:
   - git submodule sync --recursive
   - git submodule update --init --recursive
 
+  # Set the remote of the current repository to the SSH version, for which the
+  # keys are added.
+  - git remote set-url origin git@gitlab.sidnlabs.nl:tlsprint/tls-docker-images.git
+
 # Run the update script
 update:
   script:
